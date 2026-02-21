@@ -1,11 +1,11 @@
-use std::fmt;
 use std::marker::PhantomData;
 use std::mem::ManuallyDrop;
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 #[cfg(any(unix, all(target_os = "wasi", not(target_env = "p1"))))]
 use std::os::fd::{AsFd, AsRawFd, FromRawFd};
 #[cfg(windows)]
 use std::os::windows::io::{AsRawSocket, AsSocket, FromRawSocket};
+use std::{fmt, io};
 
 use crate::Socket;
 
@@ -68,11 +68,17 @@ pub struct SockRef<'s> {
     _lifetime: PhantomData<&'s Socket>,
 }
 
-impl<'s> Deref for SockRef<'s> {
+impl Deref for SockRef<'_> {
     type Target = Socket;
 
     fn deref(&self) -> &Self::Target {
         &self.socket
+    }
+}
+
+impl DerefMut for SockRef<'_> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.socket
     }
 }
 
@@ -117,5 +123,15 @@ impl fmt::Debug for SockRef<'_> {
             .field("local_addr", &self.socket.local_addr().ok())
             .field("peer_addr", &self.socket.peer_addr().ok())
             .finish()
+    }
+}
+
+impl io::Write for SockRef<'_> {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        (**self).write(buf)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        (**self).flush()
     }
 }
