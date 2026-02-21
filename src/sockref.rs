@@ -135,3 +135,9 @@ impl io::Write for SockRef<'_> {
         (**self).flush()
     }
 }
+
+impl io::Read for SockRef<'_> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        (**self).read(buf)
+    }
+}
